@@ -1,33 +1,148 @@
+```yaml
+# ============================================================
+# GitHub Actions - Continuous Integration (CI)
+# ============================================================
+#
+# Objectif :
+# - Exécuter automatiquement les tests du projet
+# - Vérifier que le code fonctionne après chaque modification
+# - Détecter rapidement les régressions
+#
+# Fonctionnement :
+#
+# Git Push / Pull Request
+#          ↓
+#    GitHub Actions
+#          ↓
+#    Machine Ubuntu
+#          ↓
+#      Python 3.14
+#          ↓
+# Installation des dépendances
+#          ↓
+#     Exécution des tests
+#          ↓
+#    ✅ SUCCÈS / ❌ ÉCHEC
+#
+# ============================================================
+
+
+# Nom du workflow qui apparaîtra dans GitHub Actions
 name: CI
 
+
+# ============================================================
+# DÉCLENCHEMENT DU WORKFLOW
+# ============================================================
+
 on:
+
+  # Exécuter le workflow lorsqu'un push est effectué
   push:
+
+    # Uniquement lorsque le push est effectué sur la branche main
     branches:
       - main
 
+
+  # Exécuter également le workflow lorsqu'une Pull Request
+  # est créée ou modifiée vers la branche main
   pull_request:
+
     branches:
       - main
+
+
+# ============================================================
+# JOBS
+# ============================================================
 
 jobs:
+
+  # Nom du job
   tests:
+
+    # GitHub fournit une machine virtuelle Ubuntu temporaire
+    # pour exécuter les étapes ci-dessous
     runs-on: ubuntu-latest
 
+
+    # ========================================================
+    # ÉTAPES DU JOB
+    # ========================================================
+
     steps:
-      - name: Checkout repository
+
+
+      # ------------------------------------------------------
+      # ÉTAPE 1 — Récupérer le code du repository
+      # ------------------------------------------------------
+      #
+      # La machine GitHub est créée vide.
+      #
+      # Cette action permet de :
+      # - récupérer le repository GitHub
+      # - récupérer le code source
+      # - récupérer la branche concernée
+      #
+      - name: Récupérer le code du repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+
+      # ------------------------------------------------------
+      # ÉTAPE 2 — Installer Python
+      # ------------------------------------------------------
+      #
+      # On demande à GitHub d'utiliser Python 3.14
+      # pour exécuter notre projet et nos tests.
+      #
+      - name: Installer Python
         uses: actions/setup-python@v5
+
         with:
+
+          # Version de Python utilisée par le projet
           python-version: "3.14"
 
-      - name: Install dependencies
+
+      # ------------------------------------------------------
+      # ÉTAPE 3 — Installer les dépendances
+      # ------------------------------------------------------
+      #
+      # On commence par mettre pip à jour.
+      #
+      # Ensuite, on installe toutes les dépendances
+      # déclarées dans requirements.txt.
+      #
+      # Enfin, on installe pytest et pytest-mock
+      # nécessaires pour exécuter les tests.
+      #
+      - name: Installer les dépendances
         run: |
+
+          # Mettre pip à jour
           python -m pip install --upgrade pip
+
+          # Installer les dépendances du projet
           pip install -r requirements.txt
+
+          # Installer les outils nécessaires aux tests
           pip install pytest pytest-mock
 
-      - name: Run unit tests
+
+      # ------------------------------------------------------
+      # ÉTAPE 4 — Exécuter les tests unitaires
+      # ------------------------------------------------------
+      #
+      # Cette étape vérifie que les fonctionnalités principales
+      # du projet fonctionnent correctement.
+      #
+      # Nous exécutons actuellement uniquement les tests unitaires
+      # car ils ne nécessitent pas LocalStack ou AWS.
+      #
+      - name: Exécuter les tests unitaires
         run: |
+
+          # Exécuter les tests avec un affichage détaillé
           pytest -v tests/test_backup.py
+```
