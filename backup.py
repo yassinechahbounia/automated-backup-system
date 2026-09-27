@@ -7,26 +7,34 @@ Creates compressed TAR.GZ backups of the data directory,
 removes old backups according to a retention policy,
 and records execution details in a log file.
 """
-
+import boto3
+import os
 import logging
 import tarfile
 
 from datetime import datetime, timedelta
 from pathlib import Path
+from dotenv import load_dotenv
+from botocore.exceptions import BotoCoreError, ClientError
+# Load environment variables from .env file
+load_dotenv()
 
-
-# ============================================================
+# ===============================================================
 # CONFIGURATION
 # ============================================================
 
+# Absolute path of the project directory.
+# __file__ = location of backup.py
+BASE_DIR = Path(__file__).resolve().parent
+
 # Directory containing the files that must be backed up.
-SOURCE_DIR = Path("data")
+SOURCE_DIR = BASE_DIR / "data"
 
 # Directory where backup archives will be stored.
-BACKUP_DIR = Path("backups")
+BACKUP_DIR = BASE_DIR / "backups"
 
 # Directory containing application logs.
-LOG_DIR = Path("logs")
+LOG_DIR = BASE_DIR / "logs"
 
 # Log file.
 LOG_FILE = LOG_DIR / "backup.log"
@@ -34,7 +42,35 @@ LOG_FILE = LOG_DIR / "backup.log"
 # Number of days backups should be kept.
 RETENTION_DAYS = 7
 
+# LocalStack S3 configuration
+# ============================================================
+# S3 CONFIGURATION
+# ============================================================
 
+S3_ENDPOINT_URL = os.getenv(
+    "S3_ENDPOINT_URL",
+    "http://localhost:4566"
+)
+
+S3_BUCKET_NAME = os.getenv(
+    "S3_BUCKET_NAME",
+    "automated-backup-system"
+)
+
+AWS_REGION = os.getenv(
+    "AWS_REGION",
+    "us-east-1"
+)
+
+AWS_ACCESS_KEY_ID = os.getenv(
+    "AWS_ACCESS_KEY_ID",
+    "test"
+)
+
+AWS_SECRET_ACCESS_KEY = os.getenv(
+    "AWS_SECRET_ACCESS_KEY",
+    "test"
+)
 # ============================================================
 # LOGGING CONFIGURATION
 # ============================================================
@@ -150,7 +186,41 @@ def create_backup():
 
     return backup_path
 
+def upload_to_s3(backup_path):
+    """
+    Upload the backup archive to the configured S3 bucket.
+    """
 
+    try:
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=S3_ENDPOINT_URL,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_REGION,
+        )
+
+        logging.info(
+            "Uploading backup to S3: %s",
+            backup_path.name,
+        )
+
+        s3.upload_file(
+            str(backup_path),
+            S3_BUCKET_NAME,
+            backup_path.name,
+        )
+
+        logging.info(
+            "Backup uploaded successfully to S3 bucket '%s'",
+            S3_BUCKET_NAME,
+        )
+
+    except (BotoCoreError, ClientError):
+        logging.exception(
+            "Failed to upload backup to S3"
+        )
+        raise
 # ============================================================
 # DELETE OLD BACKUPS
 # ============================================================
@@ -204,46 +274,21 @@ def delete_old_backups():
 # ============================================================
 
 def main():
-    """
-    Main application entry point.
-    """
-
     setup_logging()
 
-    logging.info(
-        "========================================"
-    )
-
-    logging.info(
-        "Automated Backup System started"
-    )
-
-    logging.info(
-        "========================================"
-    )
-
     try:
+        logging.info("Starting backup process")
 
-        # Create backup.
-        create_backup()
+        backup_path = create_backup()
 
-        # Remove old backups.
+        upload_to_s3(backup_path)
+
         delete_old_backups()
 
-        logging.info(
-            "Backup process completed successfully."
-        )
+        logging.info("Backup process completed successfully")
 
     except Exception:
-
-        # logging.exception() automatically includes
-        # the error message and traceback.
-
-        logging.exception(
-            "Backup process failed."
-        )
-
-        # Return a non-zero exit code.
+        logging.exception("Backup process failed")
         raise
 
 

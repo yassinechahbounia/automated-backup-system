@@ -1,1 +1,16 @@
-pytest
+awscli-local==0.22.2
+boto3==1.43.103
+botocore==1.43.103
+iniconfig==2.3.0
+jmespath==1.1.0
+localstack-client==2.12
+packaging==26.3
+pluggy==1.6.0
+Pygments==2.21.0
+pytest==9.1.1
+pytest-mock==3.15.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.3
+s3transfer==0.19.2
+six==1.17.0
+urllib3==2.8.0
