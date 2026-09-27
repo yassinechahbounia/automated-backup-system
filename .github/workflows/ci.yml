@@ -1,4 +1,3 @@
-```yaml
 # ============================================================
 # GitHub Actions - Continuous Integration (CI)
 # ============================================================
@@ -145,4 +144,3 @@ jobs:
 
           # Exécuter les tests avec un affichage détaillé
           pytest -v tests/test_backup.py
-```
